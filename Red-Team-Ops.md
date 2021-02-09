@@ -108,6 +108,38 @@ CS has a Reporting menu. It can output as PDF and MS Word, generate custom repor
 
 ## Infrastructure ##
 
+### Listener ###
+A configuration for a CS Payload (and Payload Server). The name of the listener must be descriptive enough so that other teammates can understand which listener is which and for what it is used.
+
+* Types of Listeners:
+
+   * Egress: Payload that beacons out of a network
+   * Peer-to-Peer: Payload that communicates through a parent payload
+   * Alias: Reference to a payload handler elsewhere, for instance, in another toolset
+      
+* 'Cobalt Strike' > 'Listeners' - To manage the listeners
+
+### Payload Staging ###
+* Stager: Tiny program that downloads a payload and passes execution to it. It is needed for size-constrained attacks because of the limitation of space.
+
+* Stageless Payload: Payload without a stager. It is more commonly used nowadays.
+
+* Stagers are:
+
+   * Less secure
+   * More brittle
+   * Easier to detect
+
+CS is compatible with Metasploit payloads. It is also compatible with 'Foreign Listeners', other tools, like Metasploit, can be used to listen (open a session) to a CS payload.
+
+### HTTP Beacon ###
+The client will periodically make HTTP GET requests to the CS C2 (Controller) asking for 'something to do'. If the C2 responds with 'No', the client will go to sleep until next time it sends the request. When the client asks and the C2 has an action for it to perform, it sends the payload data. When the action is performed, the client will send back the result in an HTTP POST request (If there is no output, there's no HTTP POST request). 
+
+### Listener Attacks ###
+After configuring the listener, we can configure the attacks to send.
+
+1. 'Attacks' > 'Web Drive-By' > 'Scripted Web Delivery (S)'
+
 - - - -
 
 ## C2 (Control) ##
