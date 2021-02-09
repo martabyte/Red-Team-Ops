@@ -132,13 +132,44 @@ A configuration for a CS Payload (and Payload Server). The name of the listener 
 
 CS is compatible with Metasploit payloads. It is also compatible with 'Foreign Listeners', other tools, like Metasploit, can be used to listen (open a session) to a CS payload.
 
-### HTTP Beacon ###
+### HTTP(/S) Beacon ###
 The client will periodically make HTTP GET requests to the CS C2 (Controller) asking for 'something to do'. If the C2 responds with 'No', the client will go to sleep until next time it sends the request. When the client asks and the C2 has an action for it to perform, it sends the payload data. When the action is performed, the client will send back the result in an HTTP POST request (If there is no output, there's no HTTP POST request). 
+
+The HTTPS Beacon works just the same, but with an SSL certificate.
 
 ### Listener Attacks ###
 After configuring the listener, we can configure the attacks to send.
 
-1. 'Attacks' > 'Web Drive-By' > 'Scripted Web Delivery (S)'
+1. 'Attacks' > 'Web Drive-By' > 'Scripted Web Delivery (S)' - Provides a one-liner that downloads the file with the configured payload.
+2. Run it on the victim machine - The Beacon listener will be activated
+
+### Redirectors ###
+To forward traffic to the CS Team Server.
+
+* Iptables, socat... - ``` socat TCP4-LISTEN:80,fork TCP4:<Team Server IP>:80 ```
+* Apache or Nginx Reverse Proxy config
+* CDN (Content Delivery Network) as a redirector for HTTPS traffic
+
+   * Use a valid SSL certificate
+   * Allow HTTP POST and GET verbs
+   * Consider HTTP-GET only C2
+   * Disable all cache options
+   * Be aware of transformed requests!
+
+### Listing what's Running on a Local Port ###
+``` netstat -nap | grep <Port> ```
+
+### Running commands on the Background ###
+1. ``` $ screen ```
+2. ``` $ <Command> ```
+3. <kbd>Ctrl+Z</kbd> - To send the command to the background
+4. ``` $ bg ``` - To list the processes running in the background
+5. ``` $ screen -d ``` - To detach from the session
+
+### Domain Fronting ###
+The CDN looks at the 'Host' header in an HTTP request from a client to determine which origin Server to pull from if the content is not in its cache. Domain Fronting takes advantage of this by making the HTTP Beacon client ask for the right domain, but changing the 'Host' header of the HTTP request to that of the C2, so that the request is pulled from the C2 instead of the original Server.
+
+HTTPS is more desirable in this scenario because some Proxies (& browsers?) when they notice the difference between the URL and the 'Host' header they automatically fix it, but in HTTPS, as the connection is encrypted, they can't do it so it arrives to the CDN untouched. (It can be fixed by Proxies that MiTM all the traffic of their organization, even the HTTPS traffic. But it is not done, in some cases, for client confidentiality reasons (finance, healthcare...), making it vulnerable to Domain Fronting).
 
 - - - -
 
