@@ -167,9 +167,40 @@ To forward traffic to the CS Team Server.
 5. ``` $ screen -d ``` - To detach from the session
 
 ### Domain Fronting ###
-The CDN looks at the 'Host' header in an HTTP request from a client to determine which origin Server to pull from if the content is not in its cache. Domain Fronting takes advantage of this by making the HTTP Beacon client ask for the right domain, but changing the 'Host' header of the HTTP request to that of the C2, so that the request is pulled from the C2 instead of the original Server.
+The CDN looks at the 'Host' header in an HTTP request from a client to determine which origin Server to pull from if the content is not in its cache. Domain Fronting takes advantage of this by making the HTTP Beacon client ask for the right domain, but changing the 'Host' header of the HTTP request to that of the C2, so that the request is pulled from the C2 instead of the original Server. In CS you can configure it in the 'HTTP Host Header' parameter on the listener.
 
 HTTPS is more desirable in this scenario because some Proxies (& browsers?) when they notice the difference between the URL and the 'Host' header they automatically fix it, but in HTTPS, as the connection is encrypted, they can't do it so it arrives to the CDN untouched. (It can be fixed by Proxies that MiTM all the traffic of their organization, even the HTTPS traffic. But it is not done, in some cases, for client confidentiality reasons (finance, healthcare...), making it vulnerable to Domain Fronting).
+
+Another mitigation: In HTTPS, in the TLS header, there's the SNI field, that has the value of the 'Host' header, if the CDN looks at this value, it can notice the difference.
+
+### DNS Beacon ###
+Payload that uses DNS lookups to communicate with the CS Team Server. It takes advantage of the recursive DNS query, making the query arrive to the CS Team Server that acts as a DNS Server (Listener - Payload: Beacon DNS), responding with a malicious response.
+
+Modes to transmit the DNS records with the tasks:
+* Mode: 'dns' -> DNS A Record
+* Mode: 'dns6' -> DNS AAAA Record
+* Mode: 'dns-txt' -> DNS TXT Record
+
+After configuring the DNS Beacon Listener, and luring the victim to execute the one-liner in their machine, a 'Ghost Beacon' will appear on CS. It is not a ghost, it's just that we don't have the machine's metadata yet. To do so, we need for them to request a query, and interact with the CS TS, so just right-click on it and select 'Interact', enter a command such as 'sleep 5', and then the metadata for that Beacon will appear and will perform the actions instructed.
+
+### SMB Beacon ###
+Payload that uses name pipes to communicate peer-to-peer. Example: Target network where only one node is communicating with the CS Team Server, via DNS or HTTP Beacon, and then communicates with the other nodes in the network with the SMB Beacon, and communicates the actions from and to the CS Team Server of all the subnodes in the network. (Listener - Payload: Beacon SMB)
+
+To assume control of an SMB Beacon:
+* Connect to a Beacon peer - ``` link <host> <pipe> ```
+* Disconnect from a Beacon peer - ``` unlink <host> <pid> ```
+
+To see the 'Parent - Child' relationships between SMB Beacons, go to 'Cobalt Strike' > 'Visualization' > 'Pivot Graph'.
+
+### TCP Beacon ###
+Conceptually, is similar to SMB Beacon. (Listener - Payload: Beacon TCP)
+
+To assume control of an TCP Beacon:
+* Connect to a Beacon peer - ``` connect <host> <port> ```
+* Disconnect from a Beacon peer - ``` unlink <host> <pid> ```
+
+### External C2 ###
+Specification that allows a third-party program or toolchain to control a Beacon and relay back to the CS Team Server. (Listener - Payload: External C2)
 
 - - - -
 
