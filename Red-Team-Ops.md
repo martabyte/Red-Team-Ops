@@ -206,6 +206,42 @@ Specification that allows a third-party program or toolchain to control a Beacon
 
 ## C2 (Control) ##
 
+### Malleable C2 ###
+A domain-specific language to give you control over the indicators in the Beacon payload. 
+
+In the Beacon payload you can change:
+
+* Network traffic
+* In-memory content, characteristics and behavior
+* Process injection behavior
+
+``` ./teamserver <IP> <Password> <Malleable C2 Profile> ``` - To start a Team Server with a Malleable C2 Profile
+
+Components of the profile:
+
+* Options - `set <key - http parameter> "<value>"` - Ex. `set useragent "Mozilla/5.0"`, `set uri "/image/"`
+* Blocks - Groups indicators. There's three types:
+   * http-get {} - Downloads tasks
+      * client - HTTP Request
+      * server - HTTP Response
+   * http-post {} - Controls how Beacons upload output to the CS TS
+     * client: id, output
+     * server
+   * http-stager {} - Shapes the content of the staging process
+   * http-config {} - Consistent service headers. "Global Server config"
+   * https-certificate {} - To configure the SSL certificate
+* Extraneous Indicators - Way of decorating aspects of a transaction (HTTP Headers) - `header "<key>" "<value>"` 
+* Transforms - Way of taking data that a Beacon has to send and transforms the way of dictating how the Beacon should transform the data to store it and send it - Ex. `metadata { netbios #It netbios-encodes the data; append "-.jpg"; uri-append;}` - This block can be followed to encode and recover the data, to encode read it from the top to the bottom, and to recover it, do it the other way round.
+
+#### To test a new profile before using it ####
+``` ./c2lint <Profile> ``` 
+
+### Egress and Network Evasion ###
+
+### Infrastructure OPSEC ###
+
+### Payload Security ###
+
 - - - -
 
 ## Weaponization ##
