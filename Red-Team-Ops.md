@@ -217,8 +217,7 @@ In the Beacon payload you can change:
 
 ``` ./teamserver <IP> <Password> <Malleable C2 Profile> ``` - To start a Team Server with a Malleable C2 Profile
 
-Components of the profile:
-
+#### Components of the profile ####
 * Options - `set <key - http parameter> "<value>"` - Ex. `set useragent "Mozilla/5.0"`, `set uri "/image/"`
 * Blocks - Groups indicators. There's three types:
    * http-get {} - Downloads tasks
@@ -237,14 +236,81 @@ Components of the profile:
 ``` ./c2lint <Profile> ``` 
 
 ### Egress and Network Evasion ###
+Steps to ensure that you have positive C2 over the Beacon payload.
+
+#### The C2 Problem Set ####
+* Deny all outbound traffic
+* Allow egress only through a proxy device
+   * Attack traffic must conform to expected protocol
+   * Must pass other checks as well...
+* Evade monitoring which may look for
+   * Known IOCs or suspicious IOCs in requests - IOC = Indicator of Compromise
+   * Infrastructure being identified as Cobalt Strike before use - It's best to use customized CS profiles
+
+#### Profile Evasion Tips ####
+* Don't use public profile examples - Use a customized profile
+* Don't allow empty server responses
+   * 'prepend' -> To add junk data
+   * 'mask' -> To randomize the data
+* Change URIs and use 'prepend' to mask IOCs in the http-stager block - Ex. Don't use the 'application/octet-stream' value as it is detected as suspicious.
+* Use the http-config block to standardize server headers and header order in all HTTP server responses
+* Use plausible 'set useragent' values
+* Use 'HTTP Get-Only' C2 for difficult egress situations - Best chance to get Command & Control (C2)
+
+#### Network Security Monitoring ####
+* Use an Apache, Nginx or a CDN as a redirector
+* Invest in your infrastructure
+   * Host redirectors on different providers
+   * Domains are better with age and categorization
+   * Do not use IPv4 addresses for C2
+   * Use a valid SSL certificate
+* Operate "low and slow"
+   * High Beacon sleep interval
+
+#### DNS C2 Detections / Preventions ####
+* Split-Split DNS - Organizations only allowing internal hosts to access an internal DNS Server that does not resolve to external queries
+   * Don't use DNS C2
+* Volume of requests
+   * Use DNS C2 as "low&slow" fallback option only
+* CS DNS C2 IOCs
+   * Set 'dns_stager_prepend' and 'dns_stager_subhost'
+* Bogon IP Address - Looking at responses and identifying non-valid IP address responses, such as 0.0.0.0
+   * Change 'dns_idle' in profile
+   * Avoid 'mode dns' - The IP Address field is used to send data back to the C2
+* Length of request hostnames
+   * Set 'dns_max_txt' to limit the TXT length
+   * Set 'maxdns' to limit hostname length
 
 ### Infrastructure OPSEC ###
+Having your C2 Server identified as a CS Server by online threat intelligence sites like 'Censys'.
 
-### Payload Security ###
+* How to find CS Team Servers on the Internet / Countermeasures
+   * Look for the default CS Self-Signed SSL Certificate
+      * Use a valid SSL Certificate
+      * Use Apache, Nginx or a CDN as a redirector
+      * Only allow HTTP/S connections from redirectors
+   * 0.0.0.0 DNS Responses
+      * Set 'dns_idle' in Malleable C2 to avoid 0.0.0.0 IP Address responses
+   * Open port 50050
+      * Firewall port 50050 and access via SSH Tunnel
+   * Empty index page, 404, Content-Type: text/plain
+      * Host content on your redirectors
+   * Payload config available to anyone
+      * Set 'host_stage' to 'false' in Malleable C2 - But it loses the ability of 'staging'
+   
+* How to verify a CS Team Server
+   ``` wget -U "Internet Explorer" http://<server>/vl6D ``` - Issuing a request for a payload
+
+### Beacon Payload Security Features ###
+* Beacon payload authenticates the Team Server
+* Beacon tasks and output are encrypted
+* Beacon has replay protection for tasks
+* Payload stagers *do not have* security features
 
 - - - -
 
 ## Weaponization ##
+
 
 - - - -
 
