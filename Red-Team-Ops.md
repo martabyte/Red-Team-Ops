@@ -311,6 +311,104 @@ Having your C2 Server identified as a CS Server by online threat intelligence si
 
 ## Weaponization ##
 
+* Artifact: File that embeds something that will run a payload. It creates space in memory, copies the payload (or the stager that then will call the payload) and pass execution to where the payload resides in memory.
+
+#### Hosting Files in the CS Web Server ####
+* 'Attacks' > 'Web Drive-By' > 'Host File' - To host a file
+* 'Attacks' > 'Web Drive-By' > 'Manage' - To manage and remove hosted files
+* 'View' > 'Web Log' - To see the web server activity
+
+#### Artifact Kit ####
+It is a source code Framework to generate EXEs, DLLs and Service EXEs. ('Help' > 'Arsenal' - To download it, then 'Modify and Build it' and finally, 'Cobalt Strike' > 'Script Manager' to load it.). It obfuscates known bad in unknown executables, fools AVs to stop emulating the executable, and de-obfuscates known bad and executes it.
+
+### Methods ###
+
+#### Executables and DLLs ####
+'Attacks' > 'Packages' > 'Windows EXE (S)' - Generate an executable or DLL for a Stageless Beacon
+
+``` rundll32(/64/86).exe <whatever>.dll,StartW ``` - To run the DLL
+
+Run the application via a whitelisted program for a better result:
+   * MS Office Macro
+   * PowerShell
+   * LOLbins
+   * DLL Sideloading
+
+#### Scripted Web Delivery ####
+'Attacks' > 'Web Drive-By' > 'Scripted Web Delivery (S)' - Provides an executable one-liner 
+
+#### Resource Kit ####
+It enables you to change the HTA, PowerShell, Python, VBA and VBS Script templates that CS uses in its workflows. 'Help' > 'Arsenal' to download it and modify 'resources.cna'. 'Cobalt Strike' > 'Script Manager' to load it.
+
+#### User-Driven Attacks ####
+'Attacks' > 'Packages'/'Web Drive-By'. Beware that these attacks use stagers.
+
+* HTML Application - Resource Kit
+* Java Signed Applet Attack - Applet Kit
+* MS Office Document Macros - Resource Kit
+* Windows Dropper - Artifact Kit
+
+#### Metasploit Framework Exploits ####
+Metasploit can be used to create payloads to be loaded into CS and downloadable from the victim.
+
+#### Go Custom! ####
+* 'Attacks' > 'Packages' > 'Windows EXE (S)' - To export a raw stageles artifact
+* 'Attacks' > 'Packages' > 'Payload Generator' - To export a raw stager artifact
+* Use with a third-party artifact or tool
+* (Optional) Build a script to integrate
+
+### Tradecraft: Detections ###
+Goal: Code Execution. 
+
+* EXE and Script Content
+   * Functions and strings from offense tools - Obfuscate
+   * Base64 encoded DLL or shellcode - Obfuscate
+* Behavior
+   * Write a file to disk - Avoid
+   * Execute a program - Spoof parent PID
+   * Inject into new or existing process - Obfuscate
+* Payload Content (Memory Injected DLL) - Evade
+* Process Context
+   * explorer.exe, notepad.exe, powershell.exe, rundll32.exe, svchost.exe - Avoid
+   * Commonly abused applications - Avoid
+
+#### In-Memory Detection Strategies ####
+* Thread Start Address
+   * No module associated with the start address
+* Memory Permissions
+   * RWX, RWX permissions
+   * Odd 'AllocationProtect, Protect' pairs
+* Memory Content
+   * Signs of a PE file
+   * Strings associated with toolset or common techniques
+   
+#### Malleable PE ####
+Extends Malleable C2 to modify Beacon's DLL, such as:
+
+* Prepending and appending data
+* Replacing strings
+* Embedding arbitrary strings
+* Edit PE header fields
+* Set PE loader hints to enable obfuscations
+
+#### In-Memory Detection Evasions ####
+* Thread Start Address
+   * Depends on the artifact or process injection routine that ran the Beacon payload
+* Memory Permissions
+   * Avoid artifacts that use RWX permissions
+   * Avoid the use of stagers - they always allow the RWX permissions
+   * Set 'userwx' to 'false' in Malleable C2 profile
+   * Turn on module stomping: Set 'module_x86' and 'module_x64' to a 'large unused DLL' in profile.
+* Memory Content
+   * Set 'image_size_x86' and 'image_size_x64'
+   * Use 'prepend' to offset PE in memory - needs valid x86 or x64 values
+   * Set 'obfuscate' to 'true'
+   * Set 'cleanup' to 'true'
+   * If needed, use 'strrep' to edit troublesome strings
+   * Set 'sleep_mask' to 'true'
+
+#### Artifact Tradecraft ####
+Avoid 'module-less threads' and 'RWX memory'.
 
 - - - -
 
