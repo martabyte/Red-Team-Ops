@@ -414,6 +414,35 @@ Avoid 'module-less threads' and 'RWX memory'.
 
 ## Initial Access ##
 
+#### Client-Side Attacks ####
+Making the user create the initial access to the CS Team Server. Ex. E-mail with a malicious file.
+
+Steps:
+1. Map the client-side attack surface
+2. Create a VM for testing purposes
+3. Use the VM to best select the attack
+4. Configure and disguise the attack
+5. Email attack package to the victim
+
+#### Spear Phishing ####
+Getting the weaponized content to the target.
+
+Steps:
+1. Create a target list
+   "targets.txt":
+   <email><tab><name>
+   <email><tab><name>
+      ...
+2. Create a template
+3. Choose mail server to send through
+4. Send the message
+
+#### Tradecraft ####
+Nowadays, it's difficult that an email passes the securities imposed by the providers: Aggressive spam filtering, higher standards, email antivirus, DMARC (Domain-Based Message Authentication, Reporting and Conformance), DKIM (DomainKeys Identified Mail), SPF (Sender Policy Framework)...
+
+#### Assume Breach ####
+If you're in the network, know lateral creds but do not have access to CS: Windows 7 VM w/out AV and execute the payload there.
+
 - - - -
 
 ## Post Exploitation ##
